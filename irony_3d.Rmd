@@ -1,0 +1,50 @@
+---
+title: "Irony Network"
+output: html_document
+---
+
+```{r setup0, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup, results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+library(statnet)
+library(sna)
+library(igraph)
+library(intergraph)
+library(rgl)
+library(knitr)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+```{r rgl=TRUE, results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+irony_data <- read.csv("irony_network.csv", row.names=1, header=T)
+irony_data <- irony_data[-101,]
+irony_data <- irony_data[-101]
+
+irony_net <- data.frame(apply(irony_data, 2, function(x) {
+      x[x==""] <- 0
+      as.numeric(x)
+  }))
+rownames(irony_net) <- rownames(irony_data)
+irony_net <- as.matrix(irony_net)
+diag(irony_net) <- 0
+irony_net[is.na(irony_net)] <- 0
+irony_adj <- graph.adjacency(irony_net, mode="directed", diag=F, weighted=T)
+V(irony_adj)
+page <- page_rank(irony_adj, algo="prpack", directed=T)
+V(irony_adj)$page <- page$vector
+colors <- colorRampPalette(c("#fdcf58","#800909"))
+fine=500
+pa_col <- colors(fine)[as.numeric(cut(page$vector,breaks=fine))]
+irony_3d <- asNetwork(irony_adj, matrix.type="adjacency")
+```
+
+
+```{r webgl=TRUE, results='hide', echo=FALSE, out.width = '\\maxwidth', out.height = 'maxheight', dpi=200}
+open3d(antialias=1, windowRect=c(0,0,500,500),zoom=0.5)
+gplot3d(irony_3d,edge.col="#5A5255",gmode="digraph",diag=F,label=irony_3d$vertex.names,
+        vertex.col=pa_col, mode="fruchtermanreingold", vertex.radius=page$vector*50,
+        edge.lwd=irony_3d$weight)
+```
